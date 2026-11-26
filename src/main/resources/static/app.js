@@ -66,7 +66,7 @@ function jobTable(items) {
       <div class="job-result-heading">
         <div class="job-result-title">
           <h3>${esc(j.title||"Untitled role")}</h3>
-          <div class="job-result-subtitle">${esc(j.company?.name||"Autodesk")} · ${esc(j.externalJobId||"No external ID")}</div>
+          <div class="job-result-subtitle">${esc(j.companyName||"Unknown company")} · ${esc(j.externalJobId||"No external ID")}</div>
         </div>
         <div class="job-result-actions">
           <label class="applied-control" title="Mark whether you have applied">
@@ -261,29 +261,75 @@ function bindForms() {
  const jcf=$("#company-filter");
  if(jcf) jcf.addEventListener("change",()=>filterJobs());
 }
+let activeScanPoller = null;
+
+function renderScanProgress(result) {
+ const report=$("#scan-all-report");
+ if(!report) return;
+ const rows=(result.results||[]).map(item=>{
+  const statusClass=item.status==="COMPLETED"?"green":item.status==="FAILED"?"red":item.status==="SCANNING"?"blue":"amber";
+  return `<tr><td>${esc(item.company)}</td><td><span class="pill ${statusClass}">${esc(item.status)}</span></td><td>${item.discovered??"—"}</td><td>${item.inserted??"—"}</td><td>${item.updated??"—"}</td><td>${esc(item.message||"—")}</td></tr>`;
+ }).join("");
+ report.innerHTML=`<div class="card scan-summary">
+  <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px">
+   <b>${result.status==="COMPLETED"?"Scan completed":"Scanning companies…"}</b>
+   <span class="small muted">${result.companiesCompleted??0} / ${result.companiesConfigured??0} companies</span>
+  </div>
+  <div class="progress"><span style="width:${result.progressPercent??0}%"></span></div>
+  <div class="grid stats" style="margin-top:15px">
+   <div><div class="stat-value">${result.companiesScanned??0}</div><div class="stat-foot">Companies scanned</div></div>
+   <div><div class="stat-value">${result.totalDiscovered??0}</div><div class="stat-foot">Jobs discovered</div></div>
+   <div><div class="stat-value">${result.totalInserted??0}</div><div class="stat-foot">New jobs saved</div></div>
+   <div><div class="stat-value">${result.companiesFailed??0}</div><div class="stat-foot">Failed companies</div></div>
+  </div>
+  <div style="overflow:auto"><table><thead><tr><th>Company</th><th>Status</th><th>Discovered</th><th>Inserted</th><th>Updated</th><th>Details</th></tr></thead><tbody>${rows}</tbody></table></div>
+ </div>`;
+}
+
+async function pollScanProgress(scanId) {
+ try {
+  const result=await request(`/api/job-search/scan-all/${encodeURIComponent(scanId)}`);
+  renderScanProgress(result);
+  if(result.status==="COMPLETED" || result.status==="FAILED") {
+   activeScanPoller=null;
+   const button=$("#scan-all-companies");
+   if(button){button.disabled=false;button.textContent="▶ Scan All Companies";}
+   toast(`Scan completed: ${result.companiesScanned} companies, ${result.totalInserted} new jobs, ${result.companiesFailed} failures.`);
+   await loadAll();
+   if(state.page==="jobs") render();
+   return;
+  }
+  activeScanPoller=setTimeout(()=>pollScanProgress(scanId),1200);
+ } catch(error) {
+  activeScanPoller=null;
+  const button=$("#scan-all-companies");
+  if(button){button.disabled=false;button.textContent="▶ Scan All Companies";}
+  toast("Could not read scan progress: "+error.message,true);
+ }
+}
+
 async function scanAllCompanies() {
  const button=$("#scan-all-companies");
  const report=$("#scan-all-report");
  if(!button) return;
  button.disabled=true;
- button.textContent="Scanning companies…";
- if(report) report.innerHTML='<div class="notice">Scanning configured companies. This may take a few moments…</div>';
+ button.textContent="Starting scan…";
+ if(report) report.innerHTML='<div class="notice">Starting background scan…</div>';
+ if(activeScanPoller) clearTimeout(activeScanPoller);
  try {
-  const result=await request("/api/job-search/scan-all",{method:"POST"});
-  const rows=(result.results||[]).map(item=>{
-   const statusClass=item.status==="COMPLETED"?"green":item.status==="FAILED"?"red":"amber";
-   return `<tr><td>${esc(item.company)}</td><td><span class="pill ${statusClass}">${esc(item.status)}</span></td><td>${item.discovered??"—"}</td><td>${item.inserted??"—"}</td><td>${item.updated??"—"}</td><td>${esc(item.message||"—")}</td></tr>`;
-  }).join("");
-  if(report) report.innerHTML=`<div class="card scan-summary"><div class="grid stats"><div><div class="stat-value">${result.companiesScanned??0}</div><div class="stat-foot">Companies scanned</div></div><div><div class="stat-value">${result.totalDiscovered??0}</div><div class="stat-foot">Jobs discovered</div></div><div><div class="stat-value">${result.totalInserted??0}</div><div class="stat-foot">New jobs saved</div></div><div><div class="stat-value">${result.companiesFailed??0}</div><div class="stat-foot">Failed companies</div></div></div><div style="overflow:auto"><table><thead><tr><th>Company</th><th>Status</th><th>Discovered</th><th>Inserted</th><th>Updated</th><th>Details</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-  toast(`Scan completed: ${result.companiesScanned} companies, ${result.totalInserted} new jobs, ${result.companiesFailed} failures.`);
-  await loadAll();
-  setPage("jobs");
+  const started=await request("/api/job-search/scan-all",{method:"POST"});
+  renderScanProgress(started);
+  if(started.status==="COMPLETED") {
+   button.disabled=false;button.textContent="▶ Scan All Companies";
+   await loadAll();
+   return;
+  }
+  pollScanProgress(started.scanId);
  } catch(error) {
   if(report) report.innerHTML=`<div class="notice">${esc(error.message)}</div>`;
-  toast("Company scan failed: "+error.message,true);
- } finally {
-  const current=$("#scan-all-companies");
-  if(current){current.disabled=false;current.textContent="▶ Scan All Companies";}
+  toast("Could not start company scan: "+error.message,true);
+  button.disabled=false;
+  button.textContent="▶ Scan All Companies";
  }
 }
 function filterJobs(){
