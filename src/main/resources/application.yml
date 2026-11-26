@@ -17,8 +17,15 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+
+jobscout:
+  google:
+    sheets:
+      credentials-file: ${GOOGLE_SERVICE_ACCOUNT_FILE:}
+
 server:
   port: 8082
+
 management:
   endpoints:
     web:
