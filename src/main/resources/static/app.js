@@ -1,5 +1,5 @@
 const API = "";
-const state = { page: "dashboard", companies: [], runs: [], jobs: [], summary: {} };
+const state = { page: "dashboard", companies: [], runs: [], jobs: [], summary: {}, sheetRows: [], sheetConfigs: [], spreadsheetId: "17mE6oEp49N3Ihb-jgT-3x0eL-Gsyq_BZwI6QeshoBo4" };
 const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 async function request(url, options={}) {
@@ -16,7 +16,7 @@ function toast(message, error=false) {
 function setPage(page) {
   state.page=page;
   document.querySelectorAll(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
-  const labels={"dashboard":"Dashboard","companies":"Companies","run-center":"Run Center","jobs":"Job Results","history":"Run History","configuration":"Configuration","settings":"Settings"};
+  const labels={"dashboard":"Dashboard","companies":"Companies","google-sheet":"Google Sheet","run-center":"Run Center","jobs":"Job Results","history":"Run History","configuration":"Configuration","settings":"Settings"};
   $("#page-title").textContent=labels[page]; $("#crumb").textContent=labels[page];
   render();
 }
@@ -80,6 +80,52 @@ function companies() {
  <div class="field"><label>STATUS</label><select name="enabled"><option value="true">Enabled</option><option value="false">Disabled</option></select></div>
  </div><div class="form-actions"><button class="btn btn-primary">Save company</button></div></form></div>`;
 }
+function googleSheetPage() {
+ return `<div class="section-row" style="margin-top:0"><div><h2>Google Sheets configuration</h2><div class="muted small">View the live company-search sheet and sync its rows into the JobScout MySQL database.</div></div><span class="pill green">Google Sheets connected</span></div>
+ <div class="card" style="margin-bottom:15px"><div class="form-grid">
+  <div class="field full"><label>GOOGLE SPREADSHEET ID</label><input id="sheet-id" value="${esc(state.spreadsheetId)}"></div>
+ </div><div class="form-actions"><button class="btn" id="load-sheet">↻ Load sheet</button><button class="btn btn-primary" id="sync-sheet">⇩ Sync to MySQL</button></div>
+ <div class="small muted" style="margin-top:8px">Reads the first worksheet range A2:F100. Your header row is row 2 and company data begins on row 3.</div></div>
+ <div class="section-row"><div><h2>Live Google Sheet preview</h2><div class="muted small">${state.sheetRows.length ? Math.max(0,state.sheetRows.length-1) : 0} company rows returned</div></div></div>
+ <div class="panel" id="sheet-preview">${sheetTable(state.sheetRows)}</div>
+ <div class="section-row"><div><h2>Synced MySQL configuration</h2><div class="muted small">Company search settings currently saved in JobScout.</div></div><button class="btn btn-sm" id="refresh-synced">↻ Refresh</button></div>
+ <div class="panel" id="synced-preview">${syncedConfigTable(state.sheetConfigs)}</div>`;
+}
+function sheetTable(rows) {
+ if(!rows.length) return `<div class="empty"><b>No sheet data loaded</b>Click Load sheet to retrieve the current Google Sheet rows.</div>`;
+ const headers=rows[0]||[];
+ return `<div style="overflow:auto"><table><thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.slice(1).map(row=>`<tr>${headers.map((_,i)=>`<td>${i===2 && row[i] ? `<a href="${esc(row[i])}" target="_blank" rel="noreferrer">${esc(row[i])}</a>` : esc(row[i]||"—")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function syncedConfigTable(items) {
+ if(!items.length) return `<div class="empty"><b>No configurations synced yet</b>Use Sync to MySQL to save the sheet rows.</div>`;
+ return `<div style="overflow:auto"><table><thead><tr><th>Company</th><th>Search URL</th><th>Search phrases</th><th>Location</th><th>Posted date</th><th>Last synced</th></tr></thead><tbody>${items.map(c=>`<tr><td><b>${esc(c.companyName)}</b></td><td><a href="${esc(c.companySearchUrl)}" target="_blank" rel="noreferrer">Open careers ↗</a></td><td>${esc(c.searchPhrases||"—")}</td><td>${esc(c.location||"—")}</td><td>${esc(c.postedDateDays||"—")}</td><td>${c.updatedAt?new Date(c.updatedAt).toLocaleString():"—"}</td></tr>`).join("")}</tbody></table></div>`;
+}
+async function loadGoogleSheet() {
+ const id=($("#sheet-id")?.value||state.spreadsheetId).trim();
+ if(!id) { toast("Enter a Google Spreadsheet ID.",true); return; }
+ state.spreadsheetId=id;
+ try {
+  const data=await request(`/api/google-sheets/${encodeURIComponent(id)}?range=A2%3AF100`);
+  state.sheetRows=data.values||[];
+  $("#sheet-preview").innerHTML=sheetTable(state.sheetRows);
+  toast(`Loaded ${Math.max(0,state.sheetRows.length-1)} company rows from Google Sheets.`);
+ } catch(e) { toast(e.message,true); }
+}
+async function syncGoogleSheet() {
+ const id=($("#sheet-id")?.value||state.spreadsheetId).trim();
+ if(!id) { toast("Enter a Google Spreadsheet ID.",true); return; }
+ state.spreadsheetId=id;
+ try {
+  const result=await request("/api/google-sheets/sync",{method:"POST",body:JSON.stringify({spreadsheetId:id,range:"A2:F100"})});
+  state.sheetConfigs=await request("/api/google-sheets/configurations");
+  $("#synced-preview").innerHTML=syncedConfigTable(state.sheetConfigs);
+  toast(`Sync complete: ${result.inserted} inserted, ${result.updated} updated, ${result.skipped} skipped.`);
+ } catch(e) { toast(e.message,true); }
+}
+async function loadSyncedConfigs() {
+ try { state.sheetConfigs=await request("/api/google-sheets/configurations"); $("#synced-preview").innerHTML=syncedConfigTable(state.sheetConfigs); }
+ catch(e) { toast(e.message,true); }
+}
 function runCenter() {
  const opts=state.companies.map(c=>`<option value="${esc(c.companyKey)}">${esc(c.name)} (${esc(c.companyKey)})</option>`).join("");
  return `<div class="grid two-col">
@@ -117,11 +163,15 @@ function settings() {
  </div><div class="notice" style="margin-top:15px">Change DB_URL, DB_USERNAME and DB_PASSWORD environment variables or edit application.yml for your local MySQL instance. Do not commit production credentials.</div>`;
 }
 function render() {
- const content={dashboard,companies,"run-center":runCenter,jobs,history,configuration,settings}[state.page]();
+ const content={dashboard,companies,"google-sheet":googleSheetPage,"run-center":runCenter,jobs,history,configuration,settings}[state.page]();
  $("#page-content").innerHTML=content;
  bindForms();
 }
 function bindForms() {
+ const loadSheetBtn=$("#load-sheet"); if(loadSheetBtn) loadSheetBtn.addEventListener("click",loadGoogleSheet);
+ const syncSheetBtn=$("#sync-sheet"); if(syncSheetBtn) syncSheetBtn.addEventListener("click",syncGoogleSheet);
+ const refreshSyncedBtn=$("#refresh-synced"); if(refreshSyncedBtn) refreshSyncedBtn.addEventListener("click",loadSyncedConfigs);
+ if(state.page==="google-sheet") { loadGoogleSheet(); loadSyncedConfigs(); }
  const cf=$("#company-form");
  if(cf) cf.addEventListener("submit",async e=>{
   e.preventDefault(); const f=new FormData(cf); const body=Object.fromEntries(f.entries()); body.enabled=body.enabled==="true";
