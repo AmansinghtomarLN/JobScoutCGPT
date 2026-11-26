@@ -130,3 +130,23 @@ mvn exec:java -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install
 ## Security and compliance
 
 Use the crawler only on public pages and permitted endpoints. Respect website terms, robots.txt guidance, rate limits and access restrictions. Do not attempt CAPTCHA or authentication bypass. Treat service-account JSON keys as passwords.
+
+
+## Google Sheets company configuration sync
+
+The **Google Sheet** page in the web UI previews the live worksheet and syncs company search settings into MySQL.
+
+- Open the application and select **Google Sheet** in the sidebar.
+- Enter the spreadsheet ID (the default is the configured JobScout sheet).
+- Select **Load sheet** to preview rows from `A2:F100` (headers in row 2, data from row 3).
+- Select **Sync to MySQL** to insert new companies or update existing rows matched by company name.
+- The UI shows the live sheet preview and the saved MySQL configurations.
+
+Expected columns: `S.No`, `Company Name`, `Company Search Url`, `Search phrases`, `Location`, `Posted Date/Days`. The first worksheet is used when the range has no tab prefix.
+
+API endpoints:
+- `GET /api/google-sheets/{spreadsheetId}?range=A2:F100` — read sheet values.
+- `POST /api/google-sheets/sync` with JSON `{"spreadsheetId":"...","range":"A2:F100"}` — upsert rows into `company_search_configs`.
+- `GET /api/google-sheets/configurations` — list saved configurations.
+
+This sync stores search configuration only; it does not launch the crawler.
