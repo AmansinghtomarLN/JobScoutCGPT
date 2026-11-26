@@ -1,5 +1,5 @@
 const API = "";
-const state = { page: "dashboard", companies: [], runs: [], jobs: [], summary: {}, sheetRows: [], sheetConfigs: [], autodeskAuthorization: null, spreadsheetId: "17mE6oEp49N3Ihb-jgT-3x0eL-Gsyq_BZwI6QeshoBo4" };
+const state = { page: "dashboard", companies: [], runs: [], jobs: [], summary: {}, sheetRows: [], sheetConfigs: [], spreadsheetId: "17mE6oEp49N3Ihb-jgT-3x0eL-Gsyq_BZwI6QeshoBo4" };
 const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 async function request(url, options={}) {
@@ -180,7 +180,6 @@ function runCenter() {
 }
 function jobs() {
  return `<div class="section-row" style="margin-top:0"><div><h2>Job results explorer</h2><div class="muted small">Search and review normalized job postings collected from career websites.</div></div><div style="display:flex;gap:8px"><button class="btn" id="sync-autodesk">↻ Search Autodesk & save</button><button class="btn" onclick="loadAll()">Refresh</button></div></div>
- <div class="card autodesk-authorization-card"><div class="authorization-copy"><h3>Autodesk company authorization</h3><p class="muted small">Approve JobScout to access your Autodesk candidate portal and prepare applications. This company-level approval does not approve submission for any individual job.</p><div id="autodesk-authorization-status" class="small muted">Checking authorization…</div></div><div class="authorization-actions"><button class="btn btn-primary" id="authorize-autodesk">Authorize Autodesk</button><button class="btn btn-danger" id="revoke-autodesk">Revoke authorization</button></div></div>
  <div class="toolbar"><input class="search-input" id="job-filter" placeholder="Filter by title, ID or location…"><select id="company-filter"><option value="">All companies</option>${state.companies.map(c=>`<option>${esc(c.name)}</option>`).join("")}</select><span class="pill blue">${state.jobs.length} records loaded</span></div>
  <div class="panel" id="job-table">${jobTable(state.jobs)}</div>`;
 }
@@ -204,32 +203,6 @@ function render() {
  const content={dashboard,companies,"google-sheet":googleSheetPage,"run-center":runCenter,jobs,history,configuration,settings}[state.page]();
  $("#page-content").innerHTML=content;
  bindForms();
-}
-async function loadAutodeskAuthorization() {
- const statusEl=$("#autodesk-authorization-status");
- if(!statusEl) return;
- try {
-  state.autodeskAuthorization=await request("/api/autodesk/authorization");
-  const active=state.autodeskAuthorization.authorized;
-  statusEl.innerHTML=active
-   ? `<span class="pill green">Authorized</span> Since ${esc(state.autodeskAuthorization.authorizedAt?new Date(state.autodeskAuthorization.authorizedAt).toLocaleString():"date unavailable")}`
-   : `<span class="pill amber">Not authorized</span> Approve company-level access before starting Autodesk login.`;
-  const authorizeButton=$("#authorize-autodesk"), revokeButton=$("#revoke-autodesk");
-  if(authorizeButton) authorizeButton.disabled=active;
-  if(revokeButton) revokeButton.disabled=!active;
- } catch(error) { statusEl.textContent="Could not load authorization: "+error.message; }
-}
-async function updateAutodeskAuthorization(authorized) {
- const button=authorized?$("#authorize-autodesk"):$("#revoke-autodesk");
- if(button) button.disabled=true;
- try {
-  state.autodeskAuthorization=await request("/api/autodesk/authorization",{method:authorized?"POST":"DELETE"});
-  toast(authorized?"Autodesk company authorization recorded.":"Autodesk company authorization revoked.");
-  await loadAutodeskAuthorization();
- } catch(error) {
-  toast("Could not update Autodesk authorization: "+error.message,true);
-  await loadAutodeskAuthorization();
- }
 }
 function bindForms() {
  if(state.page==="jobs") {
