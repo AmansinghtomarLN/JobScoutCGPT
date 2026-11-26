@@ -20,7 +20,7 @@ spring:
 
 jobscout:
   search:
-    # Calendar-month lookback for job postings; set to 0 to disable older-date lookback.
+    # Calendar-month lookback for job postings; 0 means jobs posted today only.
     posted-within-months: ${JOBSCOUT_SEARCH_POSTED_WITHIN_MONTHS:1}
   google:
     sheets:
