@@ -8,6 +8,8 @@ import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Service
 public class AutodeskJobSearchService {
@@ -15,6 +17,7 @@ public class AutodeskJobSearchService {
     private static final String SEARCH_PATH = "/api/pcsx/search";
     private static final String DETAILS_PATH = "/api/pcsx/position_details";
     private static final String DOMAIN = "autodesk.com";
+    private static final ZoneId POSTING_DATE_ZONE = ZoneId.of("Asia/Kolkata");
 
     private final RestClient restClient;
     private final AutodeskJobParser parser;
@@ -62,7 +65,10 @@ public class AutodeskJobSearchService {
 
             if (detailsResponse != null && detailsResponse.path("status").asInt(500) == 200) {
                 DiscoveredJob job = parser.parseJob(detailsResponse);
-                if (parser.matchesSearchPhrases(job, query)) {
+                LocalDate cutoffDate = LocalDate.now(POSTING_DATE_ZONE).minusMonths(1);
+                if (job.postedDate() != null
+                        && !job.postedDate().isBefore(cutoffDate)
+                        && parser.matchesSearchPhrases(job, query)) {
                     matchingJobs.add(job);
                 }
             }
