@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JobScout | Job Discovery</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark">J</div><div><b>JobScout</b><small>JOB DISCOVERY PLATFORM</small></div></div>
+    <div class="nav-label">WORKSPACE</div>
+    <nav id="nav">
+      <button class="nav-item active" data-page="dashboard"><span>▦</span> Dashboard</button>
+      <button class="nav-item" data-page="companies"><span>▤</span> Companies</button>
+      <button class="nav-item" data-page="run-center"><span>▶</span> Run Center</button>
+      <button class="nav-item" data-page="jobs"><span>⌕</span> Job Results</button>
+      <button class="nav-item" data-page="history"><span>◷</span> Run History</button>
+      <button class="nav-item" data-page="configuration"><span>⚙</span> Configuration</button>
+      <button class="nav-item" data-page="settings"><span>☷</span> Settings</button>
+    </nav>
+    <div class="sidebar-bottom"><div class="avatar">JS</div><div><b>JobScout Admin</b><small>Local workspace</small></div><span class="online-dot"></span></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div><div class="crumb">Workspace <span>/</span> <b id="crumb">Dashboard</b></div><h1 id="page-title">Dashboard</h1></div>
+      <div class="top-actions"><span class="system-status"><i></i> API connected</span><button class="btn btn-primary" id="top-run">＋ New search run</button></div>
+    </header>
+    <div id="toast" class="toast hidden"></div>
+    <section id="page-content" class="content"></section>
+    <footer>JobScout <span>•</span> Config-driven job discovery <span class="footer-right">Local development environment</span></footer>
+  </main>
+</div>
+<script src="/app.js"></script>
+</body></html>

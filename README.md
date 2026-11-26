@@ -1,45 +1,76 @@
-# JobScout
+# JobScout – Full Spring Boot + UI Starter (MySQL)
 
-Config-driven job crawler MVP built with Java 21, Spring Boot 3.5.7, MySQL 8, Playwright Java and a responsive static web UI.
+This is a single Spring Boot application with a built-in web UI served from `src/main/resources/static`. You do not need to start a separate React development server.
 
-## Project package
+## Requirements
+- JDK 21
+- Maven 3.9+
+- MySQL 8+
 
-The full source package is provided separately as `JobScout_Full_Spring_Boot_MySQL_UI.zip`.
+## 1. Create the database
 
-## Features
+```sql
+CREATE DATABASE jobscout;
+```
 
-- Company and career-site configuration
-- Excel workbook import for company, search, extraction and pagination settings
-- Google Drive XLSX import using OAuth refresh-token credentials
-- Playwright-based browser crawling with CSS selectors
-- Search by keyword, location and posted-date criteria
-- Result-card extraction, next-button pagination and job deduplication
-- MySQL persistence for companies, configurations, runs and job postings
-- Dashboard, run center, execution monitor, job detail and CSV export
-- Docker Compose configuration for MySQL
+Update `src/main/resources/application.yml` with your MySQL username and password, or set:
 
-## Technology
+```bash
+export DB_URL='jdbc:mysql://localhost:3306/jobscout?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC'
+export DB_USERNAME='root'
+export DB_PASSWORD='your_mysql_password'
+```
 
-- Java 21
-- Spring Boot 3.5.7
-- Spring Data JPA
-- MySQL 8
-- Playwright Java / Chromium
-- Apache POI
-- HTML, CSS and JavaScript
+## 2. Run
 
-## Important limitations
+From the project root:
 
-This is an MVP, not a universal adapter for every applicant-tracking system. Selectors must be inspected and configured per career portal. Infinite-scroll and cursor/API pagination, detail-page extraction, recurring schedules and cancellation controls are not implemented. Autodesk selectors in the sample workbook are placeholders and must be verified against the live site.
+```bash
+mvn clean spring-boot:run
+```
 
-Use the crawler only on public pages you are authorized to access. Respect each site's terms, robots guidance, rate limits and access controls. The project does not bypass CAPTCHA or authentication.
+Open the UI:
 
-## Run locally
+**http://localhost:8080**
 
-1. Create a MySQL database named `jobscout`.
-2. Configure the database connection environment variables described in the project configuration.
-3. Install Maven and Playwright Chromium.
-4. Run `mvn spring-boot:run`.
-5. Open `http://localhost:8080`.
+Health endpoint: `http://localhost:8080/actuator/health`
 
-See the full project README and configuration files in the source ZIP for exact setup details.
+## UI pages included
+- Dashboard
+- Companies
+- Run Center
+- Job Results
+- Run History
+- Configuration (Excel upload and basic validation)
+- Settings
+
+The UI is responsive and calls the Spring Boot REST APIs from the same origin.
+
+## Important implementation status
+
+This is a runnable UI + backend foundation so you can inspect the pages and test basic CRUD/request flows. It is not yet the complete production crawler:
+- Company registration is persisted to MySQL.
+- Run requests are persisted to MySQL, but do not yet launch browser crawling.
+- Jobs page reads persisted job records; no jobs are automatically scraped yet.
+- Excel upload validates the Companies sheet headers and previews rows; it does not yet sync Google Drive or persist all configuration sheets.
+- Google Drive OAuth integration is not included.
+- Generic search actions, pagination crawler, extraction mappings, worker orchestration and result ingestion are the next implementation milestone.
+
+The UI explicitly labels these unfinished areas so the demo does not imply that scraping has already run.
+
+## API endpoints
+- `GET /api/dashboard/summary`
+- `GET, POST /api/companies`
+- `GET /api/jobs`
+- `GET, POST /api/runs`
+- `POST /api/configurations/upload`
+
+## Playwright
+Playwright Java dependency is included. Browser automation is not yet wired to the Run Center button. Install Chromium when beginning crawler implementation:
+
+```bash
+mvn exec:java -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install chromium"
+```
+
+## Security / compliance
+Use this only for public pages and permitted endpoints. Respect website terms, robots.txt guidance, rate limits and access restrictions. Do not attempt CAPTCHA or authentication bypass.
