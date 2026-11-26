@@ -19,6 +19,9 @@ spring:
       max-request-size: 10MB
 
 jobscout:
+  search:
+    # Calendar-month lookback for job postings; set to 0 to disable older-date lookback.
+    posted-within-months: ${JOBSCOUT_SEARCH_POSTED_WITHIN_MONTHS:1}
   google:
     sheets:
       credentials-file: ${GOOGLE_SERVICE_ACCOUNT_FILE:}
