@@ -89,11 +89,14 @@ public class AutodeskJobParser {
             return true;
         }
 
-        String searchableText = (job.title() + " " + job.description()).toLowerCase(Locale.ROOT);
+        // Match configured search phrases against the title only. Searching the full
+        // description creates false positives when a skill is mentioned as a bonus
+        // qualification for an otherwise unrelated role.
+        String searchableTitle = job.title().toLowerCase(Locale.ROOT);
         return List.of(searchPhrases.split("[,;]")).stream()
                 .map(String::trim)
                 .filter(phrase -> !phrase.isBlank())
-                .anyMatch(phrase -> searchableText.contains(phrase.toLowerCase(Locale.ROOT)));
+                .anyMatch(phrase -> searchableTitle.contains(phrase.toLowerCase(Locale.ROOT)));
     }
 
     private String firstNonBlank(String... values) {
