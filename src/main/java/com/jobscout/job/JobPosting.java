@@ -38,6 +38,9 @@ public class JobPosting {
     @Column(nullable = false)
     private Instant firstSeenAt = Instant.now();
 
+    @Column(nullable = false)
+    private boolean applied = false;
+
     protected JobPosting() {}
 
     public JobPosting(Company company, String externalJobId, String title,
@@ -64,4 +67,6 @@ public class JobPosting {
     public String getJobUrl(){return jobUrl;}
     public LocalDate getPostedDate(){return postedDate;}
     public Instant getFirstSeenAt(){return firstSeenAt;}
+    public boolean isApplied(){return applied;}
+    public void setApplied(boolean applied){this.applied = applied;}
 }
