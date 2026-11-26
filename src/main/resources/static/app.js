@@ -296,7 +296,7 @@ async function pollScanProgress(scanId) {
    if(button){button.disabled=false;button.textContent="▶ Scan All Companies";}
    toast(`Scan completed: ${result.companiesScanned} companies, ${result.totalInserted} new jobs, ${result.companiesFailed} failures.`);
    await loadAll();
-   if(state.page==="jobs") render();
+   if(state.page==="jobs") renderScanProgress(result);
    return;
   }
   activeScanPoller=setTimeout(()=>pollScanProgress(scanId),1200);
