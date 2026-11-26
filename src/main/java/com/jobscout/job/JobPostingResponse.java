@@ -18,7 +18,7 @@ public record JobPostingResponse(
     public static JobPostingResponse from(JobPosting job) {
         return new JobPostingResponse(
                 job.getId(),
-                job.getCompany() == null ? null : job.getCompany().getName(),
+                job.getCompanyName(),
                 job.getExternalJobId(),
                 job.getTitle(),
                 job.getLocation(),
