@@ -12,8 +12,8 @@ import java.util.List;
 @Service
 public class AutodeskJobSearchService {
 
-    private static final String SEARCH_URL = "https://jobs.autodesk.com/api/pcsx/search";
-    private static final String DETAILS_URL = "https://jobs.autodesk.com/api/pcsx/position_details";
+    private static final String SEARCH_PATH = "/api/pcsx/search";
+    private static final String DETAILS_PATH = "/api/pcsx/position_details";
     private static final String DOMAIN = "autodesk.com";
 
     private final RestClient restClient;
@@ -21,6 +21,7 @@ public class AutodeskJobSearchService {
 
     public AutodeskJobSearchService(RestClient.Builder restClientBuilder, AutodeskJobParser parser) {
         this.restClient = restClientBuilder
+                .baseUrl("https://jobs.autodesk.com")
                 .defaultHeader("Accept", "application/json")
                 .defaultHeader("Referer", "https://jobs.autodesk.com/careers")
                 .build();
@@ -30,7 +31,7 @@ public class AutodeskJobSearchService {
     public List<DiscoveredJob> search(String query, String location, int start) {
         JsonNode searchResponse = restClient.get()
                 .uri(uriBuilder -> uriBuilder
-                        .path(SEARCH_URL)
+                        .path(SEARCH_PATH)
                         .queryParam("domain", DOMAIN)
                         .queryParam("query", query)
                         .queryParam("location", location)
@@ -43,7 +44,7 @@ public class AutodeskJobSearchService {
             throw new IllegalStateException("Autodesk job search API returned an unsuccessful response");
         }
 
-        List<DiscoveredJob> discoveredJobs = new ArrayList<>();
+        List<DiscoveredJob> matchingJobs = new ArrayList<>();
         for (JsonNode position : parser.extractPositions(searchResponse)) {
             String positionId = position.path("id").asText("");
             if (positionId.isBlank()) {
@@ -52,7 +53,7 @@ public class AutodeskJobSearchService {
 
             JsonNode detailsResponse = restClient.get()
                     .uri(uriBuilder -> uriBuilder
-                            .path(DETAILS_URL)
+                            .path(DETAILS_PATH)
                             .queryParam("position_id", positionId)
                             .queryParam("domain", DOMAIN)
                             .build())
@@ -60,9 +61,12 @@ public class AutodeskJobSearchService {
                     .body(JsonNode.class);
 
             if (detailsResponse != null && detailsResponse.path("status").asInt(500) == 200) {
-                discoveredJobs.add(parser.parseJob(detailsResponse));
+                DiscoveredJob job = parser.parseJob(detailsResponse);
+                if (parser.matchesSearchPhrases(job, query)) {
+                    matchingJobs.add(job);
+                }
             }
         }
-        return discoveredJobs;
+        return matchingJobs;
     }
 }
