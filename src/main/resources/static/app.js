@@ -206,9 +206,8 @@ function render() {
 }
 function bindForms() {
  if(state.page==="jobs") {
-  loadAutodeskAuthorization();
-  $("#authorize-autodesk")?.addEventListener("click",()=>updateAutodeskAuthorization(true));
-  $("#revoke-autodesk")?.addEventListener("click",()=>updateAutodeskAuthorization(false));
+  const scanButton=$("#scan-all-companies");
+  if(scanButton) scanButton.addEventListener("click",scanAllCompanies);
  }
  const loadSheetBtn=$("#load-sheet"); if(loadSheetBtn) loadSheetBtn.addEventListener("click",loadGoogleSheet);
  const syncSheetBtn=$("#sync-sheet"); if(syncSheetBtn) syncSheetBtn.addEventListener("click",syncGoogleSheet);
