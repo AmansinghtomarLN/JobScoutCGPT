@@ -1,0 +1,7 @@
+target/
+.idea/
+*.iml
+.DS_Store
+*service-account*.json
+*google-credentials*.json
+jobscout-*.json
