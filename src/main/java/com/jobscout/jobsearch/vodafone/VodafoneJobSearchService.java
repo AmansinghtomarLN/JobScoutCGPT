@@ -3,6 +3,7 @@ package com.jobscout.jobsearch.vodafone;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.jobscout.jobsearch.model.DiscoveredJob;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.client.RestClient;
 
 import java.time.LocalDate;
@@ -20,15 +21,18 @@ public class VodafoneJobSearchService {
 
     private final RestClient restClient;
     private final VodafoneJobParser parser;
+    private final int postedWithinMonths;
 
     public VodafoneJobSearchService(RestClient.Builder restClientBuilder,
-                                    VodafoneJobParser parser) {
+                                    VodafoneJobParser parser,
+                                    @Value("${jobscout.search.posted-within-months:1}") int postedWithinMonths) {
         this.restClient = restClientBuilder
                 .baseUrl("https://jobs.vodafone.com")
                 .defaultHeader("Accept", "application/json")
                 .defaultHeader("Referer", "https://jobs.vodafone.com/careers")
                 .build();
         this.parser = parser;
+        this.postedWithinMonths = Math.max(0, postedWithinMonths);
     }
 
     public List<DiscoveredJob> search(String query, String location, int start) {
@@ -65,7 +69,7 @@ public class VodafoneJobSearchService {
 
             if (detailsResponse != null && detailsResponse.path("status").asInt(500) == 200) {
                 DiscoveredJob job = parser.parseJob(detailsResponse);
-                LocalDate cutoffDate = LocalDate.now(POSTING_DATE_ZONE).minusMonths(1);
+                LocalDate cutoffDate = LocalDate.now(POSTING_DATE_ZONE).minusMonths(postedWithinMonths);
                 if (job.postedDate() != null
                         && !job.postedDate().isBefore(cutoffDate)
                         && parser.matchesSearchPhrases(job, query)) {
