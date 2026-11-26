@@ -60,7 +60,7 @@ public class JobPosting {
     }
 
     public Long getId(){return id;}
-    public String getExternalJobId(){return externalJobId;}
+    public String getCompanyName(){return company == null ? null : company.getName();}\n    public String getExternalJobId(){return externalJobId;}
     public String getTitle(){return title;}
     public String getLocation(){return location;}
     public String getDescription(){return description;}
