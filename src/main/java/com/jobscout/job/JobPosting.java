@@ -57,7 +57,6 @@ public class JobPosting {
     }
 
     public Long getId(){return id;}
-    public Company getCompany(){return company;}
     public String getExternalJobId(){return externalJobId;}
     public String getTitle(){return title;}
     public String getLocation(){return location;}
