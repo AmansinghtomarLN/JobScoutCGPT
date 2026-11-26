@@ -47,9 +47,21 @@ function runTable(items) {
   if(!items.length) return `<div class="empty"><b>No search runs yet</b>Launch a search from Run Center. This starter records requests; the crawler worker is not wired yet.</div>`;
   return `<table><thead><tr><th>Run ID</th><th>Company</th><th>Keyword</th><th>Location</th><th>Posted days</th><th>Status</th><th>Created</th></tr></thead><tbody>${items.map(r=>`<tr><td>#${r.id}</td><td>${esc(r.companyKey)}</td><td>${esc(r.keyword||"—")}</td><td>${esc(r.location||"—")}</td><td>${r.postedWithinDays??"—"}</td><td><span class="pill amber">${esc(r.status)}</span></td><td>${r.createdAt?new Date(r.createdAt).toLocaleString():"—"}</td></tr>`).join("")}</tbody></table>`;
 }
+function formatJobDate(value) {
+ if(!value) return "—";
+ const date = /^\d{4}-\d{2}-\d{2}$/.test(value)
+  ? new Date(value + "T00:00:00+05:30")
+  : new Date(value);
+ if(Number.isNaN(date.getTime())) return "—";
+ const parts = new Intl.DateTimeFormat("en-GB", {
+  timeZone:"Asia/Kolkata", day:"2-digit", month:"short", year:"numeric"
+ }).formatToParts(date);
+ const part = type => parts.find(p=>p.type===type)?.value || "";
+ return `${part("day")}-${part("month")}-${part("year")}`;
+}
 function jobTable(items) {
   if(!items.length) return `<div class="empty"><b>No jobs stored yet</b>Job results will appear here after a crawler worker has been implemented and run.</div>`;
-  return `<table><thead><tr><th>Job title</th><th>External ID</th><th>Location</th><th>Posted date</th><th>First seen</th><th>Source</th></tr></thead><tbody>${items.map(j=>`<tr><td><b>${esc(j.title)}</b></td><td>${esc(j.externalJobId||"—")}</td><td>${esc(j.location||"—")}</td><td>${esc(j.postedDate||"—")}</td><td>${j.firstSeenAt?new Date(j.firstSeenAt).toLocaleDateString():"—"}</td><td>${j.jobUrl?`<a href="${esc(j.jobUrl)}" target="_blank" rel="noreferrer">Open job ↗</a>`:"—"}</td></tr>`).join("")}</tbody></table>`;
+  return `<table><thead><tr><th>Job title</th><th>External ID</th><th>Location</th><th>Posted date</th><th>First seen</th><th>Source</th></tr></thead><tbody>${items.map(j=>`<tr><td><b>${esc(j.title)}</b></td><td>${esc(j.externalJobId||"—")}</td><td>${esc(j.location||"—")}</td><td>${esc(formatJobDate(j.postedDate))}</td><td>${esc(formatJobDate(j.firstSeenAt))}</td><td>${j.jobUrl?`<a href="${esc(j.jobUrl)}" target="_blank" rel="noreferrer">Open job ↗</a>`:"—"}</td></tr>`).join("")}</tbody></table>`;
 }
 function dashboard() {
  const s=state.summary;
