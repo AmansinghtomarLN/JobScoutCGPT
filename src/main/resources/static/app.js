@@ -179,7 +179,7 @@ function runCenter() {
  </div></div>`;
 }
 function jobs() {
- return `<div class="section-row" style="margin-top:0"><div><h2>Job results explorer</h2><div class="muted small">Search and review normalized job postings collected from career websites.</div></div><div style="display:flex;gap:8px"><button class="btn" id="sync-autodesk">↻ Search Autodesk & save</button><button class="btn" onclick="loadAll()">Refresh</button></div></div>
+ return `<div class="section-row" style="margin-top:0"><div><h2>Job results explorer</h2><div class="muted small">Search and review normalized job postings collected from career websites.</div></div><div style="display:flex;gap:8px"><button class="btn btn-primary" id="scan-all-companies">▶ Scan All Companies</button><button class="btn" onclick="loadAll()">Refresh</button></div></div><div id="scan-all-report"></div>
  <div class="toolbar"><input class="search-input" id="job-filter" placeholder="Filter by title, ID or location…"><select id="company-filter"><option value="">All companies</option>${state.companies.map(c=>`<option>${esc(c.name)}</option>`).join("")}</select><span class="pill blue">${state.jobs.length} records loaded</span></div>
  <div class="panel" id="job-table">${jobTable(state.jobs)}</div>`;
 }
@@ -261,6 +261,31 @@ function bindForms() {
  if(jf) jf.addEventListener("input",()=>filterJobs());
  const jcf=$("#company-filter");
  if(jcf) jcf.addEventListener("change",()=>filterJobs());
+}
+async function scanAllCompanies() {
+ const button=$("#scan-all-companies");
+ const report=$("#scan-all-report");
+ if(!button) return;
+ button.disabled=true;
+ button.textContent="Scanning companies…";
+ if(report) report.innerHTML='<div class="notice">Scanning configured companies. This may take a few moments…</div>';
+ try {
+  const result=await request("/api/job-search/scan-all",{method:"POST"});
+  const rows=(result.results||[]).map(item=>{
+   const statusClass=item.status==="COMPLETED"?"green":item.status==="FAILED"?"red":"amber";
+   return `<tr><td>${esc(item.company)}</td><td><span class="pill ${statusClass}">${esc(item.status)}</span></td><td>${item.discovered??"—"}</td><td>${item.inserted??"—"}</td><td>${item.updated??"—"}</td><td>${esc(item.message||"—")}</td></tr>`;
+  }).join("");
+  if(report) report.innerHTML=`<div class="card scan-summary"><div class="grid stats"><div><div class="stat-value">${result.companiesScanned??0}</div><div class="stat-foot">Companies scanned</div></div><div><div class="stat-value">${result.totalDiscovered??0}</div><div class="stat-foot">Jobs discovered</div></div><div><div class="stat-value">${result.totalInserted??0}</div><div class="stat-foot">New jobs saved</div></div><div><div class="stat-value">${result.companiesFailed??0}</div><div class="stat-foot">Failed companies</div></div></div><div style="overflow:auto"><table><thead><tr><th>Company</th><th>Status</th><th>Discovered</th><th>Inserted</th><th>Updated</th><th>Details</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  toast(`Scan completed: ${result.companiesScanned} companies, ${result.totalInserted} new jobs, ${result.companiesFailed} failures.`);
+  await loadAll();
+  setPage("jobs");
+ } catch(error) {
+  if(report) report.innerHTML=`<div class="notice">${esc(error.message)}</div>`;
+  toast("Company scan failed: "+error.message,true);
+ } finally {
+  const current=$("#scan-all-companies");
+  if(current){current.disabled=false;current.textContent="▶ Scan All Companies";}
+ }
 }
 function filterJobs(){
  const q=($("#job-filter")?.value||"").toLowerCase(), c=($("#company-filter")?.value||"").toLowerCase();
