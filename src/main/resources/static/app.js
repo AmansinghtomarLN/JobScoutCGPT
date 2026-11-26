@@ -68,17 +68,24 @@ function jobTable(items) {
           <h3>${esc(j.title||"Untitled role")}</h3>
           <div class="job-result-subtitle">${esc(j.company?.name||"Autodesk")} · ${esc(j.externalJobId||"No external ID")}</div>
         </div>
-        ${j.jobUrl?`<a class="job-open-link" href="${esc(j.jobUrl)}" target="_blank" rel="noreferrer">Open job ↗</a>`:""}
+        <div class="job-result-actions">
+          <label class="applied-control" title="Mark whether you have applied">
+            <input class="applied-toggle" type="checkbox" data-job-id="${esc(j.id)}" ${j.applied?"checked":""}>
+            <span class="toggle-track"></span>
+            <span class="applied-label">${j.applied?"Applied":"Not applied"}</span>
+          </label>
+          ${j.jobUrl?`<a class="job-open-link" href="${esc(j.jobUrl)}" target="_blank" rel="noreferrer">Open job ↗</a>`:""}
+        </div>
       </div>
       <div class="job-result-meta">
         <span><b>Location:</b> ${esc(j.location||"Not specified")}</span>
         <span><b>Posted:</b> ${esc(formatJobDate(j.postedDate))}</span>
         <span><b>First seen:</b> ${esc(formatJobDate(j.firstSeenAt))}</span>
       </div>
-      <section class="job-description">
-        <h4>Job description</h4>
-        <p>${esc(j.description||"Description not available.")}</p>
-      </section>
+      <details class="job-description-details">
+        <summary>View job description <span class="description-hint">Expand / collapse</span></summary>
+        <div class="job-description-content">${esc(j.description||"Description not available.")}</div>
+      </details>
     </article>`).join("")}</div>`;
 }
 function dashboard() {
@@ -228,6 +235,23 @@ function bindForms() {
   } catch(err) { toast(err.message,true); }
   finally { const button=$("#sync-autodesk"); if(button){button.disabled=false;button.textContent="↻ Search Autodesk & save";} }
  });
+ const appliedToggles=document.querySelectorAll(".applied-toggle");
+ appliedToggles.forEach(toggle=>toggle.addEventListener("change",async()=>{
+  const jobId=toggle.dataset.jobId;
+  const applied=toggle.checked;
+  toggle.disabled=true;
+  try {
+   const updated=await request(`/api/jobs/${encodeURIComponent(jobId)}/applied?applied=${applied}`,{method:"PATCH"});
+   const job=state.jobs.find(item=>String(item.id)===String(jobId));
+   if(job) job.applied=updated.applied;
+   const label=toggle.closest(".applied-control")?.querySelector(".applied-label");
+   if(label) label.textContent=applied?"Applied":"Not applied";
+   toast(applied?"Job marked as applied.":"Application status cleared.");
+  } catch(error) {
+   toggle.checked=!applied;
+   toast("Could not update application status: "+error.message,true);
+  } finally { toggle.disabled=false; }
+ }));
  const jf=$("#job-filter");
  if(jf) jf.addEventListener("input",()=>filterJobs());
  const jcf=$("#company-filter");
