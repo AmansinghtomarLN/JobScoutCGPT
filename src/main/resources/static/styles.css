@@ -50,3 +50,13 @@ table{width:100%;border-collapse:collapse}th{text-align:left;color:#8994a4;font-
 .description-hint{color:#98a2b0;font-size:10px;font-weight:400}
 .job-description-content{margin-top:10px;color:#536176;font-size:12px;line-height:1.7;white-space:normal;overflow-wrap:anywhere;word-break:break-word;max-height:420px;overflow-y:auto;padding:12px;background:#f8faff;border-radius:7px}
 @media(max-width:650px){.job-result-actions{width:100%;justify-content:space-between}.job-result-heading{align-items:flex-start}}
+
+
+/* Autodesk company-level authorization */
+.autodesk-authorization-card{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:16px}
+.authorization-copy{min-width:0}
+.authorization-copy h3{margin:0 0 6px;font-size:13px;color:#26364b}
+.authorization-copy p{margin:0 0 9px;line-height:1.5}
+.authorization-actions{display:flex;gap:8px;flex-shrink:0}
+.authorization-actions .btn:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:700px){.autodesk-authorization-card{align-items:flex-start;flex-direction:column}.authorization-actions{width:100%;flex-wrap:wrap}}
