@@ -142,7 +142,7 @@ function runCenter() {
  </div></div>`;
 }
 function jobs() {
- return `<div class="section-row" style="margin-top:0"><div><h2>Job results explorer</h2><div class="muted small">Search and review normalized job postings collected from career websites.</div></div><button class="btn" onclick="loadAll()">↻ Refresh</button></div>
+ return `<div class="section-row" style="margin-top:0"><div><h2>Job results explorer</h2><div class="muted small">Search and review normalized job postings collected from career websites.</div></div><div style="display:flex;gap:8px"><button class="btn" id="sync-autodesk">↻ Search Autodesk & save</button><button class="btn" onclick="loadAll()">Refresh</button></div></div>
  <div class="toolbar"><input class="search-input" id="job-filter" placeholder="Filter by title, ID or location…"><select id="company-filter"><option value="">All companies</option>${state.companies.map(c=>`<option>${esc(c.name)}</option>`).join("")}</select><span class="pill blue">${state.jobs.length} records loaded</span></div>
  <div class="panel" id="job-table">${jobTable(state.jobs)}</div>`;
 }
@@ -186,6 +186,17 @@ function bindForms() {
  if(ef) ef.addEventListener("submit",async e=>{
   e.preventDefault();const file=new FormData(ef).get("file");const fd=new FormData();fd.append("file",file);
   try{const r=await fetch("/api/configurations/upload",{method:"POST",body:fd});const d=await r.json();if(!r.ok)throw new Error(d.message||"Upload failed");$("#excel-result").textContent=`Validated ${d.parsedCompanyRows} company rows from ${d.fileName}.`;toast("Excel parsed successfully.");}catch(err){toast(err.message,true);}
+ });
+ const syncAutodeskBtn=$("#sync-autodesk");
+ if(syncAutodeskBtn) syncAutodeskBtn.addEventListener("click",async()=>{
+  syncAutodeskBtn.disabled=true; syncAutodeskBtn.textContent="Searching Autodesk…";
+  try {
+   const result=await request("/api/job-search/autodesk/sync?query=Java&location=India&start=0",{method:"POST"});
+   toast(`Autodesk sync complete: ${result.inserted} inserted, ${result.updated} updated, ${result.skipped} skipped.`);
+   await loadAll();
+   setPage("jobs");
+  } catch(err) { toast(err.message,true); }
+  finally { const button=$("#sync-autodesk"); if(button){button.disabled=false;button.textContent="↻ Search Autodesk & save";} }
  });
  const jf=$("#job-filter");
  if(jf) jf.addEventListener("input",()=>filterJobs());
