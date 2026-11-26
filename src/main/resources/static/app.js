@@ -334,7 +334,7 @@ async function scanAllCompanies() {
 }
 function filterJobs(){
  const q=($("#job-filter")?.value||"").toLowerCase(), c=($("#company-filter")?.value||"").toLowerCase();
- const filtered=state.jobs.filter(j=>(`${j.title||""} ${j.externalJobId||""} ${j.location||""}`.toLowerCase().includes(q)) && (!c || (j.company?.name||"").toLowerCase()===c));
+ const filtered=state.jobs.filter(j=>(`${j.title||""} ${j.externalJobId||""} ${j.location||""}`.toLowerCase().includes(q)) && (!c || (j.companyName||"").toLowerCase()===c));
  $("#job-table").innerHTML=jobTable(filtered);
 }
 loadAll();
