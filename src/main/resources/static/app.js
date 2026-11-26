@@ -60,8 +60,26 @@ function formatJobDate(value) {
  return `${part("day")}-${part("month")}-${part("year")}`;
 }
 function jobTable(items) {
-  if(!items.length) return `<div class="empty"><b>No jobs stored yet</b>Job results will appear here after a crawler worker has been implemented and run.</div>`;
-  return `<table><thead><tr><th>Job title</th><th>External ID</th><th>Location</th><th>Posted date</th><th>First seen</th><th>Source</th></tr></thead><tbody>${items.map(j=>`<tr><td><b>${esc(j.title)}</b></td><td>${esc(j.externalJobId||"—")}</td><td>${esc(j.location||"—")}</td><td>${esc(formatJobDate(j.postedDate))}</td><td>${esc(formatJobDate(j.firstSeenAt))}</td><td>${j.jobUrl?`<a href="${esc(j.jobUrl)}" target="_blank" rel="noreferrer">Open job ↗</a>`:"—"}</td></tr>`).join("")}</tbody></table>`;
+  if(!items.length) return `<div class="empty"><b>No jobs stored yet</b>Job results will appear here after a search is run.</div>`;
+  return `<div class="job-results-list">${items.map(j=>`
+    <article class="job-result-card">
+      <div class="job-result-heading">
+        <div class="job-result-title">
+          <h3>${esc(j.title||"Untitled role")}</h3>
+          <div class="job-result-subtitle">${esc(j.company?.name||"Autodesk")} · ${esc(j.externalJobId||"No external ID")}</div>
+        </div>
+        ${j.jobUrl?`<a class="job-open-link" href="${esc(j.jobUrl)}" target="_blank" rel="noreferrer">Open job ↗</a>`:""}
+      </div>
+      <div class="job-result-meta">
+        <span><b>Location:</b> ${esc(j.location||"Not specified")}</span>
+        <span><b>Posted:</b> ${esc(formatJobDate(j.postedDate))}</span>
+        <span><b>First seen:</b> ${esc(formatJobDate(j.firstSeenAt))}</span>
+      </div>
+      <section class="job-description">
+        <h4>Job description</h4>
+        <p>${esc(j.description||"Description not available.")}</p>
+      </section>
+    </article>`).join("")}</div>`;
 }
 function dashboard() {
  const s=state.summary;
